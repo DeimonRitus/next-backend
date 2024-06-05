@@ -1,0 +1,6 @@
+﻿services:
+  next-backend:
+    image: next-backend
+    build:
+      context: .
+      dockerfile: next-backend/Dockerfile
