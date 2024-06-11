@@ -11,8 +11,6 @@ M
 next-backend/appsettings.json,e/b/eb2492505bfcd7116484a5ef55c591836b9c0953
 U
 %next-backend/services/StoryService.cs,f/a/fadab31aa00fc9fac513438168d0ca7d61cbf425
-_
-/next-backend/services/tests/storyServiceTest.cs,4/5/45887cbf2167a61b8a679c5b07c663a389fe02b5
 P
  next-backend/next-backend.csproj,3/1/313a0912e3e485d0e9818b3050b71a22025c7057
 N
