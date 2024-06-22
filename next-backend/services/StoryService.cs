@@ -1,9 +1,16 @@
+using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using next_backend.models;
 
 namespace next_backend.services;
 
-public class StoryService(RestClientService restClient)
+public interface IStoryService
+{
+    Task<Story> GetStory(int id);
+    Task<List<Story>> GetStories(int page, int pageSize);
+}
+
+public class StoryService(RestClientService restClient, IMemoryCache? memoryCache) : IStoryService
 {
 
     public async Task<Story?> GetStory(int id)
@@ -44,8 +51,19 @@ public class StoryService(RestClientService restClient)
 
             foreach (var id in currentIds)
             {
-                Story? story = await GetStory(id);
-                if (story != null) stories.Add(story);
+                string key = $"story_{id}";
+                if (!memoryCache.TryGetValue(key, out Story? cachedData))
+                {
+                    cachedData = await GetStory(id);
+
+                    var cacheEntryOptions = new MemoryCacheEntryOptions()
+                        .SetSlidingExpiration(TimeSpan.FromMinutes(10));
+
+                    memoryCache.Set(key, cachedData, cacheEntryOptions);
+                    
+                    if (cachedData != null) stories.Add(cachedData);
+                } else 
+                    stories.Add(cachedData);
             }
             
             return stories;

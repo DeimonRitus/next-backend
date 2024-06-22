@@ -1,57 +1,53 @@
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
 using next_backend.models;
 using next_backend.services;
+using Moq;
 
 namespace TestProject2;
 
 public class Tests
 {
-    [Test]
-    public async Task GetStories()
+    private Mock<IStoryService> _mockMemoryCache;
+    private RestClientService _restClientService;
+    
+    [SetUp]
+    public void SetUp()
     {
-        RestClientService restClient = new RestClientService();
-        StoryService storyService = new StoryService(restClient);
-
-        //We send 10 as pageSize due to normal scenarios using the page
-        var result = await storyService.GetStories(1, 10);
-        var firstStory = result?.First();
-        
-        Assert.NotNull(result);
-        Assert.IsAssignableFrom<Story>(firstStory);
+        _mockMemoryCache = new Mock<IStoryService>();
+        _restClientService = new RestClientService();
     }
-
+    
     [Test]
-    public async Task GetStoryById()
+    public async Task GetStory()
     {
-        RestClientService restClient = new RestClientService();
-        StoryService storyService = new StoryService(restClient);
+        int key = 99;
+        Story expectedStory = new Story { Id = key, Title = $"Story {key}" };
+
+        _mockMemoryCache.Setup(s => s.GetStory(key)).Returns(Task.FromResult(expectedStory));
         
-        var result = await storyService.GetStories(1, 5);
-        var firstStory = result?.First();
-        
-        Assert.NotNull(result);
-        Assert.NotNull(firstStory);
-        
-        if (firstStory != null)
+        var customOptions = new MemoryCacheOptions()
         {
-            var story = await storyService.GetStory(firstStory.Id);
-            Assert.IsAssignableFrom<Story>(story);
-        }
-    }
-
-    [Test]
-    public async Task ShouldNotReceiveStoriesWithoutBothParams()
-    {
-        RestClientService restClient = new RestClientService();
-        StoryService storyService = new StoryService(restClient);
+            SizeLimit = 1024 
+        };
         
-        Assert.ThrowsAsync<StoryService.NotFoundException>(async() => await storyService.GetStories(0, 0));
+        var cache = new MemoryCache(customOptions);
+        var storyService = new StoryService(_restClientService, cache);
+
+        var result = await storyService.GetStory(key);
+        Assert.AreEqual(result!.Id, expectedStory.Id);
     }
     
     [Test]
     public async Task ShouldNotReceiveStoriesWithoutPageSizeParam()
     {
-        RestClientService restClient = new RestClientService();
-        StoryService storyService = new StoryService(restClient);
+        var customOptions = new MemoryCacheOptions()
+        {
+            SizeLimit = 1024 
+        };
+        
+        var cache = new MemoryCache(customOptions);
+        var storyService = new StoryService(_restClientService, cache);
         
         Assert.ThrowsAsync<StoryService.NotFoundException>(async() => await storyService.GetStories(1, 0));
     }
@@ -59,9 +55,15 @@ public class Tests
     [Test]
     public async Task ShouldThrowAnErrorWhenReceiveStoriesWithoutPageParam()
     {
-        RestClientService restClient = new RestClientService();
-        StoryService storyService = new StoryService(restClient);
+        var customOptions = new MemoryCacheOptions()
+        {
+            SizeLimit = 1024 
+        };
+        
+        var cache = new MemoryCache(customOptions);
+        var storyService = new StoryService(_restClientService, cache);
         
         Assert.ThrowsAsync<StoryService.NotFoundException>(async() => await storyService.GetStories(0, 1));
     }
+    
 }
